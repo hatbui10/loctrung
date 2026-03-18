@@ -2,143 +2,71 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Random TXT 0-9</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lọc trùng CONST từ JSON</title>
 <style>
-*{
-  box-sizing: border-box;
-}
-
-body{
-  margin:0;
-  min-height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:flex-start;
-  padding-top:40px;
-  background:linear-gradient(135deg,#141e30,#243b55);
-  font-family:Segoe UI, Arial, sans-serif;
-  color:#fff;
-}
-
-
-.container{
-  background:rgba(255,255,255,0.05);
-  backdrop-filter:blur(12px);
-  padding:40px;
-  border-radius:16px;
-  width:350px;
-  box-shadow:0 20px 40px rgba(0,0,0,0.4);
-  text-align:center;
-}
-
-h2{
-  margin-bottom:25px;
-  font-weight:600;
-}
-
-.input-group{
-  margin-bottom:20px;
-  text-align:left;
-}
-
-label{
-  display:block;
-  margin-bottom:6px;
-  font-size:14px;
-  opacity:0.8;
-}
-
-input{
-  width:100%;
-  padding:10px;
-  border-radius:8px;
-  border:none;
-  outline:none;
-  font-size:20px;
-  background:red;
-  color:#fff;
-  transition:0.3s;
-}
-
-input:focus{
-  background:#2c3e50;
-  box-shadow:0 0 0 2px #4fc3f7;
-}
-
-button{
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  background:#4fc3f7;
-  color:#000;
-  font-weight:600;
-  cursor:pointer;
-  transition:0.3s;
-}
-
-button:hover{
-  background:#29b6f6;
-  transform:translateY(-2px);
-  box-shadow:0 8px 20px rgba(0,0,0,0.4);
-}
-
-button:active{
-  transform:translateY(0);
-}
+body { font-family: sans-serif; padding: 20px; }
+pre { background: #f4f4f4; padding: 10px; max-height: 200px; overflow-y: auto; }
+button { margin-top: 10px; }
 </style>
-
 </head>
-
 <body>
 
-<div class="container">
-  <h2>Random TXT Generator</h2>
+<h2>Upload file JSON chứa CONST_1 và CONST_2</h2>
+<input type="file" id="fileInput" accept=".txt,.json">
+<p>Số lượng CONST 1: <span id="count1">0</span></p>
+<p>Số lượng CONST 2: <span id="count2">0</span></p>
 
-  <div class="input-group">
-    <label>Tổng số cần tạo</label>
-    <input type="number" id="total" value="10000" min="1">
-  </div>
+<button id="filterBtn">Lọc trùng & Xuất file TXT</button>
 
-  <div class="input-group">
-    <label>Số lượng mỗi hàng</label>
-    <input type="number" id="perLine" value="100" min="1">
-  </div>
-
-  <button onclick="generate()">Tạo & Xuất TXT</button>
-</div>
+<h3>Kết quả trùng</h3>
+<p>Số lượng trùng: <span id="countDuplicate">0</span></p>
+<pre id="result"></pre>
 
 <script>
-function generate() {
+let const1 = [];
+let const2 = [];
 
-  const total = parseInt(document.getElementById("total").value);
-  const perLine = parseInt(document.getElementById("perLine").value);
+// Đọc file JSON/TXT
+document.getElementById('fileInput').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
 
-  let result = "";
-
-  for (let i = 0; i < total; i++) {
-    const randomNumber = Math.floor(Math.random() * 10);
-    result += randomNumber;
-
-    if ((i + 1) % perLine === 0) {
-      result += "\n";
+  const reader = new FileReader();
+  reader.onload = function(event){
+    try {
+      const data = JSON.parse(event.target.result);
+      const1 = data.CONST_1 || [];
+      const2 = data.CONST_2 || [];
+      document.getElementById('count1').textContent = const1.length;
+      document.getElementById('count2').textContent = const2.length;
+    } catch(err){
+      alert('File không hợp lệ hoặc không phải JSON: ' + err);
     }
+  };
+  reader.readAsText(file);
+});
+
+// Lọc trùng và xuất file
+document.getElementById('filterBtn').addEventListener('click', function(){
+  if(const1.length === 0 || const2.length === 0){
+    alert('Hãy upload file JSON hợp lệ trước');
+    return;
   }
+  const duplicates = const1.filter(x => const2.includes(x));
+  document.getElementById('countDuplicate').textContent = duplicates.length;
+  document.getElementById('result').textContent = duplicates.join(', ');
 
-  const blob = new Blob([result], { type: "text/plain" });
-  const link = document.createElement("a");
-
-  link.href = URL.createObjectURL(blob);
-  link.download = "random_output.txt";
-  link.click();
-
-  URL.revokeObjectURL(link.href);
-}
+  // Xuất file TXT
+  const blob = new Blob([duplicates.join('\n')], {type: 'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'ketqua_trung.txt';
+  a.click();
+  URL.revokeObjectURL(url);
+});
 </script>
 
 </body>
 </html>
-
-
-

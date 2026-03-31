@@ -1,72 +1,133 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lọc trùng CONST từ JSON</title>
-<style>
-body { font-family: sans-serif; padding: 20px; }
-pre { background: #f4f4f4; padding: 10px; max-height: 200px; overflow-y: auto; }
-button { margin-top: 10px; }
-</style>
+    <meta charset="UTF-8">
+    <title>Data Cleaner Ultra - Dark Mode</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --accent: #bc8cff;
+            --green: #39d353;
+            --red: #ff7b72;
+            --yellow: #d29922;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
+        .container { max-width: 1000px; margin: 20px auto; background: var(--card); padding: 30px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        h2 { color: var(--accent); text-align: center; margin-top: 0; text-transform: uppercase; }
+        .info-box { background: rgba(210, 153, 34, 0.1); border: 1px solid var(--yellow); color: var(--yellow); padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9rem; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: #0d1117; padding: 15px; border-radius: 10px; border: 1px solid var(--border); }
+        .full { grid-column: 1 / -1; }
+        .label { font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; }
+        .display { 
+            background: #010409; color: #7ee787; padding: 12px; height: 150px; 
+            overflow-y: auto; border-radius: 6px; font-family: 'Fira Code', monospace;
+            font-size: 13px; border: 1px solid var(--border); white-space: pre-wrap; word-break: break-all;
+        }
+        .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+        button { 
+            flex: 1; padding: 10px; cursor: pointer; border-radius: 6px; border: none; 
+            font-weight: bold; transition: 0.2s; background: var(--accent); color: #0d1117;
+        }
+        button:hover { filter: brightness(1.2); transform: translateY(-1px); }
+        .btn-copy { background: #21262d; color: var(--text); border: 1px solid var(--border); }
+        .btn-copy:hover { background: #30363d; }
+        input[type="file"] { width: 100%; padding: 15px; background: #21262d; border: 2px dashed var(--border); border-radius: 8px; color: var(--accent); margin-bottom: 20px; cursor: pointer; }
+    </style>
 </head>
 <body>
 
-<h2>Upload file JSON chứa CONST_1 và CONST_2</h2>
-<input type="file" id="fileInput" accept=".txt,.json">
-<p>Số lượng CONST 1: <span id="count1">0</span></p>
-<p>Số lượng CONST 2: <span id="count2">0</span></p>
+<div class="container">
+    <h2>⚔️ Trình Triệt Tiêu Số Trùng</h2>
+    <div class="info-box">
+        💡 <b>Quy tắc:</b> Nếu một số xuất hiện ở cả hai tệp (ví dụ: số 68), nó sẽ bị <b>XÓA HẾT</b> khỏi cả hai danh sách kết quả.
+    </div>
+    
+    <input type="file" id="fileInput" accept=".txt">
 
-<button id="filterBtn">Lọc trùng & Xuất file TXT</button>
+    <div class="grid">
+        <div class="card">
+            <div class="label" style="color: var(--accent);">TỆP NHỎ (DUY NHẤT) <span style="color: var(--green);">SL: <span id="c1">0</span></span></div>
+            <div id="v1" class="display">Chờ tải tệp...</div>
+            <div class="btn-group">
+                <button class="btn-copy" onclick="copy('v1')">Sao chép</button>
+            </div>
+        </div>
 
-<h3>Kết quả trùng</h3>
-<p>Số lượng trùng: <span id="countDuplicate">0</span></p>
-<pre id="result"></pre>
+        <div class="card">
+            <div class="label" style="color: var(--accent);">TỆP LỚN (DUY NHẤT) <span style="color: var(--green);">SL: <span id="c2">0</span></span></div>
+            <div id="v2" class="display">Chờ tải tệp...</div>
+            <div class="btn-group">
+                <button class="btn-copy" onclick="copy('v2')">Sao chép</button>
+            </div>
+        </div>
+
+        <div class="card full" style="border-color: var(--red);">
+            <div class="label" style="color: var(--red);">CÁC SỐ ĐÃ BỊ LOẠI BỎ (VÌ TRÙNG NHAU) <span style="color: var(--red);">SL: <span id="c3">0</span></span></div>
+            <div id="v3" class="display" style="color: var(--red); height: 80px;">Chưa có dữ liệu.</div>
+            <div class="btn-group">
+                <button style="background: var(--red); color: #fff;" onclick="copy('v3')">SAO CHÉP DANH SÁCH BỊ LOẠI</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
-let const1 = [];
-let const2 = [];
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-// Đọc file JSON/TXT
-document.getElementById('fileInput').addEventListener('change', function(e){
-  const file = e.target.files[0];
-  if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const text = event.target.result;
+        const getNums = (str) => (str ? (str.match(/\d+/g) || []).map(n => n.trim()) : []);
 
-  const reader = new FileReader();
-  reader.onload = function(event){
-    try {
-      const data = JSON.parse(event.target.result);
-      const1 = data.CONST_1 || [];
-      const2 = data.CONST_2 || [];
-      document.getElementById('count1').textContent = const1.length;
-      document.getElementById('count2').textContent = const2.length;
-    } catch(err){
-      alert('File không hợp lệ hoặc không phải JSON: ' + err);
-    }
-  };
-  reader.readAsText(file);
+        // Phân tách tệp (không phân biệt hoa thường)
+        const parts = text.split(/tệp lớn/i);
+        const smallRaw = [...new Set(getNums(parts[0]))]; // Lọc trùng nội bộ nhỏ
+        const largeRaw = [...new Set(getNums(parts[1] || ""))]; // Lọc trùng nội bộ lớn
+
+        // Tìm các số giao nhau (trùng giữa 2 tệp)
+        const common = smallRaw.filter(num => largeRaw.includes(num));
+
+        // TRIỆT TIÊU: Loại bỏ số trùng khỏi cả 2 danh sách
+        const finalSmall = smallRaw.filter(num => !common.includes(num));
+        const finalLarge = largeRaw.filter(num => !common.includes(num));
+
+        // Cập nhật giao diện
+        update('v1', 'c1', finalSmall);
+        update('v2', 'c2', finalLarge);
+        update('v3', 'c3', common);
+    };
+    reader.readAsText(file);
 });
 
-// Lọc trùng và xuất file
-document.getElementById('filterBtn').addEventListener('click', function(){
-  if(const1.length === 0 || const2.length === 0){
-    alert('Hãy upload file JSON hợp lệ trước');
-    return;
-  }
-  const duplicates = const1.filter(x => const2.includes(x));
-  document.getElementById('countDuplicate').textContent = duplicates.length;
-  document.getElementById('result').textContent = duplicates.join(', ');
+function update(vId, cId, data) {
+    document.getElementById(vId).textContent = data.length > 0 ? data.join(', ') : "Không còn số nào.";
+    document.getElementById(cId).textContent = data.length;
+}
 
-  // Xuất file TXT
-  const blob = new Blob([duplicates.join('\n')], {type: 'text/plain;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'ketqua_trung.txt';
-  a.click();
-  URL.revokeObjectURL(url);
-});
+function copy(id) {
+    const text = document.getElementById(id).textContent;
+    if (text.includes("Chờ") || text === "Không còn số nào.") return;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        const notify = document.createElement('div');
+        notify.textContent = "Đã copy!";
+        notify.style.position = 'fixed';
+        notify.style.bottom = '20px';
+        notify.style.right = '20px';
+        notify.style.background = '#39d353';
+        notify.style.color = '#000';
+        notify.style.padding = '10px 20px';
+        notify.style.borderRadius = '5px';
+        document.body.appendChild(notify);
+        setTimeout(() => notify.remove(), 2000);
+    });
+}
 </script>
-
 </body>
 </html>
